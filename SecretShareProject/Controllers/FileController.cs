@@ -19,95 +19,98 @@ namespace SecretShareProject.Controllers
     {
         private CloudBlobClient blobStorage;
         private ApplicationDbContext db;
-        private static string[] cloudStorageServices = new String[] {"amazon","dropbox","googledrive","onedrive"};
+        private static string[] cloudStorageServices = new String[] { "amazon", "dropbox", "googledrive", "onedrive" };
 
 
         public ActionResult Upload()
         {
             return View();
         }
-        
-  
+
+
         [HttpPost]
         public ActionResult Upload(FileUploadModel model)
         {
             if (ModelState.IsValid)
-                try
+                if (model.minshares < model.numshares)
                 {
-                    CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
-                      ConfigurationManager.ConnectionStrings["StorageConnectionString"].ConnectionString);
-                    blobStorage = storageAccount.CreateCloudBlobClient();
-                    db = ApplicationDbContext.Create();
-
-
-                    String fileName = model.file.FileName;
-                    String mimemap = MimeMapping.GetMimeMapping(fileName);
-                    int numshares = model.numshares;
-                    int minshares = model.minshares;
-
-                    string[] sizes = { "B", "KB", "MB", "GB" };
-                    double len = model.file.ContentLength;
-                    int order = 0;
-                    while (len >= 1024 && order + 1 < sizes.Length)
+                    try
                     {
-                        order++;
-                        len = len / 1024;
-                    }
-                    
-                    string fileSize = String.Format("{0:0.#} {1}", len, sizes[order]);
+                        CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
+                          ConfigurationManager.ConnectionStrings["StorageConnectionString"].ConnectionString);
+                        blobStorage = storageAccount.CreateCloudBlobClient();
+                        db = ApplicationDbContext.Create();
 
-                    BinaryReader b = new BinaryReader(model.file.InputStream);
-                    byte[] binData = b.ReadBytes(model.file.ContentLength);
-                    Share[] shares = byteArrToShares(binData, numshares, minshares);
 
-                    FileInfoModel fileInfo = new FileInfoModel
-                    {
-                        fileName = fileName,
-                        fileSize = fileSize,
-                        mimetype = mimemap,
-                        numshares = numshares,
-                        minshares = minshares,
-                        userID = User.Identity.GetUserId()
-                    };
+                        String fileName = model.file.FileName;
+                        String mimemap = MimeMapping.GetMimeMapping(fileName);
+                        int numshares = model.numshares;
+                        int minshares = model.minshares;
 
-                    db.Files.Add(fileInfo);
-                    db.SaveChanges();
-
-                    CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
-             
-                    int i = 0;
-                    foreach (Share s in shares)
-                    {
-                        CloudBlobContainer container = blobClient.GetContainerReference(cloudStorageServices[i]);
-                        byte[] share = s.serialize();
-                        string blobName = Guid.NewGuid().ToString();
-
-                        ShareModel shareInfo = new ShareModel
+                        string[] sizes = { "B", "KB", "MB", "GB" };
+                        double len = model.file.ContentLength;
+                        int order = 0;
+                        while (len >= 1024 && order + 1 < sizes.Length)
                         {
-                            storageService = cloudStorageServices[i],
-                            shareName=blobName,
-                            fileId = fileInfo.Id
-                        };
-                        db.Shares.Add(shareInfo);
-                        db.SaveChanges();
-                        CloudBlockBlob blob = container.GetBlockBlobReference(blobName);
-                        blob.UploadFromByteArrayAsync(share, 0, share.Length);
-                        i++;
-                        if (i == 4)
-                        {
-                            i = 0;
+                            order++;
+                            len = len / 1024;
                         }
+
+                        string fileSize = String.Format("{0:0.#} {1}", len, sizes[order]);
+
+                        BinaryReader b = new BinaryReader(model.file.InputStream);
+                        byte[] binData = b.ReadBytes(model.file.ContentLength);
+                        Share[] shares = byteArrToShares(binData, numshares, minshares);
+
+                        FileInfoModel fileInfo = new FileInfoModel
+                        {
+                            fileName = fileName,
+                            fileSize = fileSize,
+                            mimetype = mimemap,
+                            numshares = numshares,
+                            minshares = minshares,
+                            userID = User.Identity.GetUserId()
+                        };
+
+                        db.Files.Add(fileInfo);
+                        db.SaveChanges();
+
+                        CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
+
+                        int i = 0;
+                        foreach (Share s in shares)
+                        {
+                            CloudBlobContainer container = blobClient.GetContainerReference(cloudStorageServices[i]);
+                            byte[] share = s.serialize();
+                            string blobName = Guid.NewGuid().ToString();
+
+                            ShareModel shareInfo = new ShareModel
+                            {
+                                storageService = cloudStorageServices[i],
+                                shareName = blobName,
+                                fileId = fileInfo.Id
+                            };
+                            db.Shares.Add(shareInfo);
+                            db.SaveChanges();
+                            CloudBlockBlob blob = container.GetBlockBlobReference(blobName);
+                            blob.UploadFromByteArrayAsync(share, 0, share.Length);
+                            i++;
+                            if (i == 4)
+                            {
+                                i = 0;
+                            }
+                        }
+                        ViewBag.Message = "File uploaded successfully";
                     }
-                    ViewBag.Message = "File uploaded successfully";
+                    catch (Exception ex)
+                    {
+                        ViewBag.Message = "ERROR:" + ex.Message.ToString();
+                    }
                 }
-                catch (Exception ex)
+                else
                 {
-                    ViewBag.Message = "ERROR:" + ex.Message.ToString();
+                    ViewBag.Message = "The minimum number of shares cannot be less than the number of shares";
                 }
-            else
-            {
-                ViewBag.Message = "You have not specified a file.";
-            }
             return View();
         }
 
@@ -115,7 +118,7 @@ namespace SecretShareProject.Controllers
         {
             string userid = User.Identity.GetUserId();
             db = ApplicationDbContext.Create();
-            var FileModel = db.Files.Where(f => f.userID == userid);  
+            var FileModel = db.Files.Where(f => f.userID == userid);
 
             return View(FileModel.ToList());
 
@@ -150,10 +153,10 @@ namespace SecretShareProject.Controllers
 
 
             string userid = User.Identity.GetUserId();
-            
+
             var FileModel = db.Files.Where(f => f.userID == userid);
 
-            return View("ViewFiles",FileModel.ToList());
+            return View("ViewFiles", FileModel.ToList());
 
         }
 
@@ -164,7 +167,7 @@ namespace SecretShareProject.Controllers
             blobStorage = storageAccount.CreateCloudBlobClient();
 
             CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
-           
+
             db = ApplicationDbContext.Create();
             var fileModel = db.Files.Single(f => f.Id == id);
 
@@ -197,7 +200,7 @@ namespace SecretShareProject.Controllers
                 {
                     FileDownloadName = fileModel.fileName
                 };
-                return  result;
+                return result;
             }
             catch (Exception ex)
             {
