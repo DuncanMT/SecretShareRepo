@@ -1,0 +1,46 @@
+﻿@model IEnumerable<SecretShareProject.Models.FileInfoModel>
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Download</title>
+</head>
+<body>
+    <table class="table">
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.fileName)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.numshares)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.minshares)
+            </th>
+            <th></th>
+        </tr>
+    
+    @foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.fileName)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.numshares)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.minshares)
+            </td>
+            <td>
+                @Html.ActionLink("Delete", "Delete", new { id = item.Id }) |
+                @Html.ActionLink("Download", "Download", new { id = item.Id })
+            </td>
+        </tr>
+        
+    }
+    </table>
+    @ViewBag.Message
+</body>
+</html>
