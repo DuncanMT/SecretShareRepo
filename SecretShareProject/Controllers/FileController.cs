@@ -25,11 +25,12 @@ namespace SecretShareProject.Controllers
         {
             return View();
         }
-
+        
+  
         [HttpPost]
         public ActionResult Upload(FileUploadModel model)
         {
-            if (model.file != null && model.file.ContentLength > 0)
+            if (ModelState.IsValid)
                 try
                 {
                     CloudStorageAccount storageAccount = CloudStorageAccount.Parse(
@@ -42,7 +43,18 @@ namespace SecretShareProject.Controllers
                     String mimemap = MimeMapping.GetMimeMapping(fileName);
                     int numshares = model.numshares;
                     int minshares = model.minshares;
+
+                    string[] sizes = { "B", "KB", "MB", "GB" };
+                    double len = model.file.ContentLength;
+                    int order = 0;
+                    while (len >= 1024 && order + 1 < sizes.Length)
+                    {
+                        order++;
+                        len = len / 1024;
+                    }
                     
+                    string fileSize = String.Format("{0:0.#} {1}", len, sizes[order]);
+
                     BinaryReader b = new BinaryReader(model.file.InputStream);
                     byte[] binData = b.ReadBytes(model.file.ContentLength);
                     Share[] shares = byteArrToShares(binData, numshares, minshares);
@@ -50,6 +62,7 @@ namespace SecretShareProject.Controllers
                     FileInfoModel fileInfo = new FileInfoModel
                     {
                         fileName = fileName,
+                        fileSize = fileSize,
                         mimetype = mimemap,
                         numshares = numshares,
                         minshares = minshares,
@@ -77,7 +90,7 @@ namespace SecretShareProject.Controllers
                         db.Shares.Add(shareInfo);
                         db.SaveChanges();
                         CloudBlockBlob blob = container.GetBlockBlobReference(blobName);
-                        blob.UploadFromByteArray(share, 0, share.Length);
+                        blob.UploadFromByteArrayAsync(share, 0, share.Length);
                         i++;
                         if (i == 4)
                         {
@@ -126,7 +139,7 @@ namespace SecretShareProject.Controllers
                 CloudBlobContainer container = blobClient.GetContainerReference(s.storageService);
                 CloudBlockBlob blob = container.GetBlockBlobReference(s.shareName);
                 blob.FetchAttributes();
-                blob.Delete();
+                blob.DeleteAsync();
             }
 
             db.Shares.Where(s => s.fileId == file.Id).ToList().ForEach(s => db.Shares.Remove(s));

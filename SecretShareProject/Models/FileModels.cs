@@ -6,19 +6,25 @@ using System.Web;
 
 namespace SecretShareProject.Models
 {
-    public class FileModels
-    { }
-
     public class FileUploadModel
     {
+        [DisplayName("File")]
+        [Required(ErrorMessage = "A file is required")]
         public HttpPostedFileBase file { get; set; }
+        [DisplayName("Number of Shares")]
+        [Range(1, 10)]
+        [Required(ErrorMessage = "A number of shares is required")]
         public int numshares { get; set; }
+        [DisplayName("Minimum Shares")]
+        [Range(1, 10)]
+        [Required(ErrorMessage = "A minimum number of shares is required")]
         public int minshares { get; set; }
     }
 
+
     public class FileInfoModel
     {
-         public FileInfoModel()
+        public FileInfoModel()
         {
             Id = Guid.NewGuid().ToString();
         }
@@ -26,6 +32,8 @@ namespace SecretShareProject.Models
         public string Id { get; set; }
         [DisplayName("File Name")]
         public string fileName { get; set; }
+        [DisplayName("File Size")]
+        public string fileSize { get; set; }
         public string mimetype { get; set; }
         [DisplayName("Number of Shares")]
         public int numshares { get; set; }
