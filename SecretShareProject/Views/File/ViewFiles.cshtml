@@ -1,13 +1,13 @@
 ﻿@model IEnumerable<SecretShareProject.Models.FileInfoModel>
 
 @{
-    ViewBag.Title = "ViewFiles";
+    ViewBag.Title = "View Files";
 }
 
-<h2>ViewFiles</h2>
+<h2>View Files</h2>
 
 <p>
-    @Html.ActionLink("Create New", "Upload")
+    @Html.ActionLink("Upload New File", "Upload")
 </p>
 <table class="table">
     <tr>
@@ -48,5 +48,6 @@
         </tr>
 
     }
+    @ViewBag.Message
 
 </table>

@@ -4,54 +4,75 @@
     ViewBag.Title = "Upload";
 }
 
-<h2>Upload</h2>
+<h2>@ViewBag.Title.</h2>
+<div class="row">
+    <div class="col-md-8">
+        <section id="loginForm">
+            @using (Html.BeginForm("Upload", "File", FormMethod.Post, new { encType = "multipart/form-data" }))
+            {
+                @Html.AntiForgeryToken()
+                <h4>Select a file to upload</h4>
 
+                <div class="form-horizontal">
+                    <hr />
+                    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                    <div class="form-group">
+                        @Html.LabelFor(model => model.numshares, htmlAttributes: new { @class = "control-label col-md-2" })
+                        <div class="col-md-10">
+                            @Html.EditorFor(model => model.numshares, new { htmlAttributes = new { @class = "form-control", title = "Enter the number of shares you want to create, valid values are 1-10" } })
+                            @Html.ValidationMessageFor(model => model.numshares, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
 
-@using (Html.BeginForm("Upload", "File", FormMethod.Post, new { encType = "multipart/form-data" }))
-{
-    @Html.AntiForgeryToken()
+                    <div class="form-group">
+                        @Html.LabelFor(model => model.minshares, htmlAttributes: new { @class = "control-label col-md-2" })
+                        <div class="col-md-10">
+                            @Html.EditorFor(model => model.minshares, new { htmlAttributes = new { @class = "form-control", title = "Enter the minimum number of shares required to rebuild the file valid values are 1-10" } })
+                            @Html.ValidationMessageFor(model => model.minshares, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
 
-    <div class="form-horizontal">
-        <hr />
-        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
-        <div class="form-group">
-            @Html.LabelFor(model => model.numshares, htmlAttributes: new { @class = "control-label col-md-2" })
-            <div class="col-md-10">
-                @Html.EditorFor(model => model.numshares, new { htmlAttributes = new { @class = "form-control", title = "Enter the number of shares you want to create, valid values are 1-10" } })
-                @Html.ValidationMessageFor(model => model.numshares, "", new { @class = "text-danger" })
-            </div>
-        </div>
+                    <div class="form-group">
+                        @Html.LabelFor(model => model.file, htmlAttributes: new { @class = "control-label col-md-2" })
+                        <div class="col-md-10">
+                            <input type="file" name="file" id="file" />
+                            @Html.ValidationMessageFor(model => model.file, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
 
-        <div class="form-group">
-            @Html.LabelFor(model => model.minshares, htmlAttributes: new { @class = "control-label col-md-2" })
-            <div class="col-md-10">
-                @Html.EditorFor(model => model.minshares, new { htmlAttributes = new { @class = "form-control", title = "Enter the minimum number of shares required to rebuild the file valid values are 1-10" } })
-                @Html.ValidationMessageFor(model => model.minshares, "", new { @class = "text-danger" })
-            </div>
-        </div>
-
-        <div class="form-group">
-            @Html.LabelFor(model => model.file, htmlAttributes: new { @class = "control-label col-md-2" })
-            <div class="col-md-10">
-                <input type="file" name="file" id="file" />
-                @Html.ValidationMessageFor(model => model.file, "", new { @class = "text-danger" })
-            </div>
-        </div>
-
-        <div class="form-group">
+                    <div class="form-group">
+                        <div class="col-md-offset-2 col-md-10">
+                            <input type="submit" value="Create" class="btn btn-default" />
+                        </div>
+                    </div>
+                </div>
+            }
             <div class="col-md-offset-2 col-md-10">
-                <input type="submit" value="Create" class="btn btn-default" />
+                @ViewBag.Message
             </div>
-        </div>
+
+            <div>
+                @Html.ActionLink("Back to List", "ViewFiles")
+            </div>
+        </section>
     </div>
-}
+    <div class="col-md-4">
+        <section id="socialLoginForm">
+            <h4>Share Option Information</h4>
+            <hr />
+            <text>
+                <b>Security</b><br />
+                Ensure that the number of shares required is close
+                to  or the same as the number of shares to create
+                The Maximum number of shares per file is limited to 10,
+                2 shares per cloud vendor<br />
 
-<div class="col-md-offset-2 col-md-10">
-    @ViewBag.Message
-</div>
-
-<div>
-    @Html.ActionLink("Back to List", "ViewFiles")
+                <b>Reduncancy</b><br />
+                Minimise the number of shares required to rebuild the file
+                and create a larger number of shares.<br /><br />
+            </text>
+        </section>
+    </div>
 </div>
 
 @section Scripts {

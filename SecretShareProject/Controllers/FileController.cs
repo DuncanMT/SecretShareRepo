@@ -128,6 +128,8 @@ namespace SecretShareProject.Controllers
                 string userid = User.Identity.GetUserId();
                 db = ApplicationDbContext.Create();
                 var FileModel = db.Files.Where(f => f.userID == userid);
+                if(TempData["error"]!= null)
+                    ViewBag.Message = TempData["error"].ToString();
 
                 return View(FileModel.ToList());
             }
@@ -158,8 +160,11 @@ namespace SecretShareProject.Controllers
                 {
                     CloudBlobContainer container = blobClient.GetContainerReference(s.storageService);
                     CloudBlockBlob blob = container.GetBlockBlobReference(s.shareName);
-                    blob.FetchAttributes();
-                    blob.DeleteAsync();
+                    if (blob.Exists())
+                    {
+                        blob.FetchAttributes();
+                        blob.DeleteAsync();
+                    }
                 }
 
                 db.Shares.Where(s => s.fileId == file.Id).ToList().ForEach(s => db.Shares.Remove(s));
@@ -180,7 +185,7 @@ namespace SecretShareProject.Controllers
             }
         }
 
-        public FileContentResult Download(String id)
+        public ActionResult Download(String id)
         {
             if ((System.Web.HttpContext.Current.User != null) && System.Web.HttpContext.Current.User.Identity.IsAuthenticated)
             {
@@ -201,38 +206,48 @@ namespace SecretShareProject.Controllers
                 {
                     CloudBlobContainer container = blobClient.GetContainerReference(s.storageService);
                     CloudBlockBlob blob = container.GetBlockBlobReference(s.shareName);
-                    blob.FetchAttributes();
-                    long fileByteLength = blob.Properties.Length;
-                    byte[] fileContent = new byte[fileByteLength];
-                    blob.DownloadToByteArray(fileContent, 0);
-                    data.Add(fileContent);
-                }
-
-                Share[] shares = new Share[fileModel.numshares];
-                int j = 0;
-                try
-                {
-                    data.ForEach(delegate (byte[] array)
+                    if (blob.Exists())
                     {
-                        shares[j++] = SerializableShare.deserialize(array);
-                    });
-
-                    byte[] file = sharesToByteArray(shares, fileModel.numshares, fileModel.minshares);
-                    FileContentResult result = new FileContentResult(file, fileModel.mimetype)
-                    {
-                        FileDownloadName = fileModel.fileName
-                    };
-                    return result;
+                        blob.FetchAttributes();
+                        long fileByteLength = blob.Properties.Length;
+                        byte[] fileContent = new byte[fileByteLength];
+                        blob.DownloadToByteArray(fileContent, 0);
+                        data.Add(fileContent);
+                    }
                 }
-                catch (Exception ex)
+                if (data.Count >= fileModel.minshares)
                 {
-                    ViewBag.Message = "ERROR:" + ex.Message.ToString();
-                    return null;
+                    Share[] shares = new Share[data.Count];
+                    int j = 0;
+                    try
+                    {
+                        data.ForEach(delegate (byte[] array)
+                        {
+                            shares[j++] = SerializableShare.deserialize(array);
+                        });
+
+                        byte[] file = sharesToByteArray(shares, fileModel.numshares, fileModel.minshares);
+                        FileContentResult result = new FileContentResult(file, fileModel.mimetype)
+                        {
+                            FileDownloadName = fileModel.fileName
+                        };
+                        return result;
+                    }
+                    catch (Exception ex)
+                    {
+                        ViewBag.Message = "ERROR:" + ex.Message.ToString();
+                        return View("ViewFiles");
+                    }
+                }
+                else
+                {
+                    TempData["error"] = "ERROR: only " + data.Count + " shares available, a minimum of " + fileModel.minshares + " is required for "+fileModel.fileName;
+                    return RedirectToAction("ViewFiles");
                 }
             }
             else
             {
-                return null;
+                return RedirectToAction("Login", "Account");
             }
         }
 
